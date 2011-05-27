@@ -1,0 +1,127 @@
+#define LIGHT_MIN               54 
+
+#define SCAN_PWR                100 
+#define SCAN_STEP               150 
+
+#define DRIVE_PWR               100
+#define ONE_STEP                200
+
+#define LINE_SENSOR             SENSOR_1
+#define LINE_SENSOR_PIN         IN_1
+
+#define SONAR_SENSOR        SENSOR_2
+#define SONAR_SENSOR_PIN    IN_2
+
+#define LEFT_LIGHT_SENSOR       SENSOR_3
+#define LEFT_LIGHT_SENSOR_PIN   IN_3
+#define RIGHT_LIGHT_SENSOR      SENSOR_4
+#define RIGHT_LIGHT_SENSOR_PIN  IN_4
+
+mutex motorMutex;
+int l, r; // left and right light sensor readings
+
+sub beepup() {
+     PlayTone(TONE_C5, 50);
+     Wait(50);
+     PlayTone(TONE_D5, 50);
+     Wait(50);
+     PlayTone(TONE_E5, 50);
+     Wait(50);
+     PlayTone(TONE_F5, 50);
+     Wait(50);
+     PlayTone(TONE_G5, 50);
+}
+
+sub beepdn() {
+     PlayTone(TONE_G5, 50);
+     Wait(50);
+     PlayTone(TONE_F5, 50);
+     Wait(50);
+     PlayTone(TONE_E5, 50);
+     Wait(50);
+     PlayTone(TONE_D5, 50);
+     Wait(50);
+     PlayTone(TONE_C6, 50);
+}
+
+task doom() {
+     int dist;
+     SetSensorLowspeed(S2);
+     TextOut(0, LCD_LINE1, "Fork of d00m!");
+     while (true) {
+         dist = SensorUS(S2);
+     TextOut(0, LCD_LINE2, "           ");
+     NumOut(0, LCD_LINE2, dist);
+         if (dist < 24) {
+        if (l < 90 && r < 90) {
+           beepup();
+               RotateMotor(OUT_A, DRIVE_PWR, -90);
+               RotateMotor(OUT_A, DRIVE_PWR, 90);
+           beepdn();
+        }
+     }
+     }
+}
+
+task main () {
+     SetSensorLight(LEFT_LIGHT_SENSOR_PIN);
+     SetSensorLight(RIGHT_LIGHT_SENSOR_PIN);
+     SetSensorColorFull(LINE_SENSOR_PIN);
+     //SetSensorUltrasonic(SONAR_SENSOR_PIN);
+     OnRev(OUT_C,0);
+     OnRev(OUT_B,0);
+     Off(OUT_C);
+     Off(OUT_B);
+     ClearScreen();
+     start doom;
+     TextOut(0,0,"Starting");
+     //while (true);
+     while (true) {
+         l = LEFT_LIGHT_SENSOR;
+         r = RIGHT_LIGHT_SENSOR;
+         if (l > LIGHT_MIN || r > LIGHT_MIN)
+         {
+                 Wait(200);
+             if (abs(l - r) <= 2) {
+                 TextOut(0,10,"FORWARD=GO");
+                 Acquire(motorMutex);
+                 //RotateMotorEx(OUT_BC, DRIVE_PWR, ONE_STEP, 0, true, false);
+                 OnFwd(OUT_B,100);
+                 OnFwd(OUT_C,100);
+                 Release(motorMutex);
+             } else if (l > r)
+             {
+                 TextOut(0,0,"LINKS");
+                 Acquire(motorMutex);
+                 OnFwd(OUT_B,100);
+                 OnFwd(OUT_C,1);
+                 //RotateMotorEx(OUT_BC, DRIVE_PWR, ONE_STEP,80,true,false);
+                 Release(motorMutex);
+             }
+             else if (r > l)
+             {
+                 TextOut(0,0,"RECHTS");
+                 Acquire(motorMutex);
+                 //RotateMotorEx(OUT_BC, DRIVE_PWR, ONE_STEP,-80,true,false);
+                 OnFwd(OUT_C,100);
+                 OnFwd(OUT_B,1);
+                 Release(motorMutex);
+             }
+             else
+             {
+                 TextOut(0,0,"Je moeder");
+             }
+           }
+           else
+           {
+           TextOut(1,0,"Scanning");
+               Acquire(motorMutex);
+           OnFwd(OUT_C,100);
+               OnRev(OUT_B,100);
+               //RotateMotorEx(OUT_BC, DRIVE_PWR, ONE_STEP,100,true,true);
+               Release(motorMutex);
+           }
+       ClearScreen();
+     }
+}
+
